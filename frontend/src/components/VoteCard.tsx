@@ -282,31 +282,27 @@ export function VoteCard({ vote, onVoteCast }: { vote: Vote; onVoteCast: () => v
         startTs,
         durationStr
       );
+      const decryptResultMap = new Map<string, bigint>(
+        Object.entries(decryptResult)
+      );
 
       // Step 5: Extract and display results
       const decryptedResults: number[] = [];
       console.log("📬 Decrypt result map:", decryptResult);
       for (let i = 0; i < encryptedCounts.length; i++) {
         const handle = encryptedCounts[i];
-        const possibleKeys = [
-          handle,
-          typeof handle === "bigint" ? handle.toString() : "",
-          typeof handle === "bigint"
-            ? "0x" + handle.toString(16)
-            : typeof handle === "string"
-            ? handle
-            : "",
-        ].filter(Boolean) as (string | bigint)[];
+        const possibleKeys: string[] = [
+          String(handle),
+          typeof handle === "bigint" ? handle.toString() : undefined,
+          typeof handle === "bigint" ? `0x${handle.toString(16)}` : undefined,
+          typeof handle === "string" ? handle : undefined,
+        ].filter((key): key is string => Boolean(key));
 
-        let countValue: bigint | number | undefined;
+        let countValue: bigint | undefined;
         for (const key of possibleKeys) {
-          if (
-            key !== "" &&
-            key !== undefined &&
-            key !== null &&
-            key in decryptResult
-          ) {
-            countValue = decryptResult[key as keyof typeof decryptResult];
+          const value = decryptResultMap.get(key);
+          if (value !== undefined) {
+            countValue = value;
             break;
           }
         }
@@ -315,7 +311,7 @@ export function VoteCard({ vote, onVoteCast }: { vote: Vote; onVoteCast: () => v
           console.warn("⚠️ Could not find decrypted value for handle", handle);
           decryptedResults.push(0);
         } else {
-          decryptedResults.push(Number(countValue));
+        decryptedResults.push(Number(countValue));
         }
       }
 
@@ -479,7 +475,7 @@ export function VoteCard({ vote, onVoteCast }: { vote: Vote; onVoteCast: () => v
                   </button>
                   <button 
                     className="btn-secondary" 
-                    onClick={() => handleRequestDecryption(false)} 
+                    onClick={() => { void handleRequestDecryption(false); }} 
                     disabled={loading} 
                     style={{ marginBottom: '0.5rem', width: '100%' }}
                   >
@@ -487,7 +483,7 @@ export function VoteCard({ vote, onVoteCast }: { vote: Vote; onVoteCast: () => v
                   </button>
                   <button 
                     className="btn-primary" 
-                    onClick={() => handleRequestDecryption(true)} 
+                    onClick={() => { void handleRequestDecryption(true); }} 
                     disabled={loading} 
                     style={{ width: '100%', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
                   >
@@ -498,7 +494,7 @@ export function VoteCard({ vote, onVoteCast }: { vote: Vote; onVoteCast: () => v
                   </p>
                 </div>
               ) : (
-                <button className="btn-secondary" onClick={() => handleRequestDecryption(false)} disabled={loading} style={{ marginTop: '1rem' }}>
+                <button className="btn-secondary" onClick={() => { void handleRequestDecryption(false); }} disabled={loading} style={{ marginTop: '1rem' }}>
                   Request Decryption 🔓
                 </button>
               )}
@@ -508,7 +504,11 @@ export function VoteCard({ vote, onVoteCast }: { vote: Vote; onVoteCast: () => v
       ) : (status?.isEnded || !status?.isActive) && !vote.isDecrypted && !status?.isDecrypted && !loading ? (
         <div className="vote-ended">
           <p className="ended-message">⏰ Voting has ended</p>
-          <button className="btn-primary" onClick={handleRequestDecryption} disabled={loading}>
+          <button
+            className="btn-primary"
+            onClick={() => { void handleRequestDecryption(false); }}
+            disabled={loading}
+          >
             Request Decryption 🔓
           </button>
         </div>
